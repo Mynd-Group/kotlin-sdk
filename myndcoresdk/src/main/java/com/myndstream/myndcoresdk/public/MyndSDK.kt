@@ -1,5 +1,7 @@
 package com.myndstream.myndcoresdk.public
 
+import com.myndstream.myndcoresdk.audio.IAudioClient
+import com.myndstream.myndcoresdk.audio.MyndAudioClient
 import com.myndstream.myndcoresdk.clients.ICatalogueClient
 import com.myndstream.myndcoresdk.clients.AuthPayload
 import com.myndstream.myndcoresdk.clients.HttpClient
@@ -10,10 +12,12 @@ import com.myndstream.myndcoresdk.clients.CatalogueClient
 
 interface IMyndSDK {
     val catalogueClient: ICatalogueClient
+//    val player: IAudioClient
 }
 
 class MyndSDK private constructor(
-    override val catalogueClient: ICatalogueClient
+    override val catalogueClient: ICatalogueClient,
+//    override val player: IAudioClient
 ) : IMyndSDK {
 
     companion object {
@@ -45,7 +49,9 @@ class MyndSDK private constructor(
                 baseUrl = Config.baseApiUrl
             )
 
-            return MyndSDK(catalogueClient)
+//            val player = MyndAudioClient()
+
+            return MyndSDK(catalogueClient )
         }
     }
 }
