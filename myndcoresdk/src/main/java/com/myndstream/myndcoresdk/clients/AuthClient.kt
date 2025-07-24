@@ -26,7 +26,6 @@ data class AuthPayload(
 data class AuthClientConfig(
     val authFunction: suspend () -> AuthPayload,
     val httpClient: IHttpClient,
-    // TODO: baseUrl should be an internal thing
     val baseUrl: String
 )
 

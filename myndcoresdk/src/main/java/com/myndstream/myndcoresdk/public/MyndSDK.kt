@@ -19,7 +19,6 @@ class MyndSDK private constructor(
     companion object {
         fun create(
             authFunction: suspend () -> AuthPayload,
-            baseUrl: String
         ): MyndSDK {
 
             // Create HTTP client
@@ -30,7 +29,7 @@ class MyndSDK private constructor(
                 config = AuthClientConfig(
                     authFunction = authFunction,
                     httpClient = httpClient,
-                    baseUrl = baseUrl
+                    baseUrl = Config.baseApiUrl
                 )
             )
 
@@ -43,7 +42,7 @@ class MyndSDK private constructor(
             // Create catalogue client
             val catalogueClient = CatalogueClient(
                 authedHttpClient = authedHttpClient,
-                baseUrl = baseUrl
+                baseUrl = Config.baseApiUrl
             )
 
             return MyndSDK(catalogueClient)
