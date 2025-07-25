@@ -1,28 +1,30 @@
 package com.myndstream.myndcoresdk.public
 
+import android.content.Context
 import com.myndstream.myndcoresdk.audio.IAudioClient
 import com.myndstream.myndcoresdk.audio.MyndAudioClient
 import com.myndstream.myndcoresdk.clients.ICatalogueClient
-import com.myndstream.myndcoresdk.clients.AuthPayload
 import com.myndstream.myndcoresdk.clients.HttpClient
 import com.myndstream.myndcoresdk.clients.AuthClient
 import com.myndstream.myndcoresdk.clients.AuthClientConfig
 import com.myndstream.myndcoresdk.clients.AuthedHttpClient
 import com.myndstream.myndcoresdk.clients.CatalogueClient
+import models.AuthPayload
 
 interface IMyndSDK {
     val catalogueClient: ICatalogueClient
-//    val player: IAudioClient
+    val player: IAudioClient
 }
 
 class MyndSDK private constructor(
     override val catalogueClient: ICatalogueClient,
-//    override val player: IAudioClient
+    override val player: IAudioClient
 ) : IMyndSDK {
 
     companion object {
         fun create(
             authFunction: suspend () -> AuthPayload,
+            ctx: Context
         ): MyndSDK {
 
             // Create HTTP client
@@ -49,9 +51,9 @@ class MyndSDK private constructor(
                 baseUrl = Config.baseApiUrl
             )
 
-//            val player = MyndAudioClient()
+            val player = MyndAudioClient(ctx)
 
-            return MyndSDK(catalogueClient )
+            return MyndSDK(catalogueClient, player)
         }
     }
 }
