@@ -1,5 +1,7 @@
 package com.myndstream.myndcoresdk.clients
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -47,7 +49,7 @@ class HttpClient : IHttpClient {
         return executeRequest(request.build())
     }
 
-    private suspend fun executeRequest(request: Request): String {
+    private suspend fun executeRequest(request: Request): String = withContext(Dispatchers.IO) {
         okHttpClient.newCall(request).execute().use { response ->
             val responseBody = response.body?.string()
                 ?: throw IOException("Empty response")
@@ -61,7 +63,7 @@ class HttpClient : IHttpClient {
                 throw IOException("HTTP Error: ${response.code}")
             }
 
-            return responseBody
+            return@withContext responseBody
         }
     }
 }
