@@ -1,5 +1,6 @@
 package models
 
+import android.annotation.SuppressLint
 import java.io.Serializable
 
 interface ISongHLS : Serializable {
@@ -39,6 +40,8 @@ interface ISong : Serializable {
     val artists: List<IArtist>
 }
 
+@SuppressLint("UnsafeOptInUsageError")
+@kotlinx.serialization.Serializable
 data class SongHLS(
     override val id: String,
     override val url: String,
@@ -46,6 +49,8 @@ data class SongHLS(
     override val urlExpiresAtISO: String
 ) : ISongHLS
 
+@SuppressLint("UnsafeOptInUsageError")
+@kotlinx.serialization.Serializable
 data class SongMP3(
     override val id: String,
     override val url: String,
@@ -53,21 +58,29 @@ data class SongMP3(
     override val urlExpiresAtISO: String
 ) : ISongMP3
 
+@SuppressLint("UnsafeOptInUsageError")
+@kotlinx.serialization.Serializable
 data class SongImage(
     override val id: String,
     override val url: String
 ) : ISongImage
 
+@SuppressLint("UnsafeOptInUsageError")
+@kotlinx.serialization.Serializable
 data class Artist(
     override val id: String,
     override val name: String
 ) : IArtist
 
+@SuppressLint("UnsafeOptInUsageError")
+@kotlinx.serialization.Serializable
 data class Audio(
     override val hls: SongHLS,
     override val mp3: SongMP3
 ) : IAudio
 
+@SuppressLint("UnsafeOptInUsageError")
+@kotlinx.serialization.Serializable
 data class Song(
     override val id: String,
     override val name: String,

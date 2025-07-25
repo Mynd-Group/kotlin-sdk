@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+
+    kotlin("plugin.serialization") version "1.9.10"
 }
 
 android {
@@ -37,6 +39,7 @@ dependencies {
 
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

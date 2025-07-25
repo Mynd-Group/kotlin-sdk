@@ -1,5 +1,6 @@
 package com.myndstream.myndcoresdk.clients
 
+import android.annotation.SuppressLint
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.Deferred
@@ -10,17 +11,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.Serializable
+import models.AuthPayload
 
-// Data classes
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
-data class AuthPayload(
-    val accessToken: String,
-    val refreshToken: String,
-    val accessTokenExpiresAtUnixMs: Long
-) {
-    val isExpired: Boolean
-        get() = accessTokenExpiresAtUnixMs < System.currentTimeMillis()
-}
+data class RefreshRequest(val refreshToken: String)
+
 
 // Configuration
 data class AuthClientConfig(
@@ -133,8 +129,6 @@ class AuthClient(private val config: AuthClientConfig) {
 
         val url = "${config.baseUrl}/integration-user/refresh-token"
 
-        @Serializable
-        data class RefreshRequest(val refreshToken: String)
 
         return try {
             val requestJson = json.encodeToString(RefreshRequest(currentPayload.refreshToken))

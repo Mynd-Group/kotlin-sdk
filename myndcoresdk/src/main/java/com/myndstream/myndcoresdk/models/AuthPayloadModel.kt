@@ -1,19 +1,21 @@
 package models
 
+import android.annotation.SuppressLint
 import core.utils.UnixTimeFormatter
-import java.io.Serializable
 
-interface IAuthPayload : Serializable {
+interface IAuthPayload  {
     val accessToken: String
     val refreshToken: String
-    val accessTokenExpiresAtUnixMs: Int
+    val accessTokenExpiresAtUnixMs: Long
     val isExpired: Boolean
 }
 
+@SuppressLint("UnsafeOptInUsageError")
+@kotlinx.serialization.Serializable
 data class AuthPayload(
     override val accessToken: String,
     override val refreshToken: String,
-    override val accessTokenExpiresAtUnixMs: Int
+    override val accessTokenExpiresAtUnixMs: Long,
 ) : IAuthPayload {
     override val isExpired: Boolean
         get() = accessTokenExpiresAtUnixMs < UnixTimeFormatter.getCurrentUnixTimeInMS()
