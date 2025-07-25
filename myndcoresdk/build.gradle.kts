@@ -32,7 +32,6 @@ android {
 }
 
 dependencies {
-    // FIXED: Use AndroidX instead of old support library
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.core:core-ktx:1.12.0")
 
@@ -42,9 +41,10 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 
     // Media3 dependencies
-    implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.common)
-    implementation(libs.androidx.media3.session)
+    implementation("androidx.media3:media3-exoplayer:1.7.1")
+    implementation("androidx.media3:media3-ui:1.7.1")
+    implementation("androidx.media3:media3-common:1.7.1")
+    implementation("androidx.media3:media3-session:1.7.1")
 
     // Other dependencies
     implementation(libs.kotlinx.serialization.json)

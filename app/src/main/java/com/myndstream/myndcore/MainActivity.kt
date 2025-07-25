@@ -45,9 +45,6 @@ class MainActivity : AppCompatActivity() {
                                 val progress = event.progress
                                 println("⏱️ Progress: Track ${progress.trackIndex + 1} - ${progress.trackCurrentTime.toInt()}s/${progress.trackDuration.toInt()}s (${(progress.trackProgress * 100).toInt()}%)")
                             }
-                            is AudioPlayerEvent.SongCompleted -> {
-                                println("✅ Song completed: ${event.song.name}")
-                            }
                             is AudioPlayerEvent.PlaylistCompleted -> {
                                 println("🏁 Playlist completed!")
                             }

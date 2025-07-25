@@ -8,17 +8,23 @@ import com.myndstream.myndcoresdk.audio.AudioPlayerEvent
 import com.myndstream.myndcoresdk.audio.PlaybackProgress
 import com.myndstream.myndcoresdk.audio.PlaybackState
 import com.myndstream.myndcoresdk.audio.RepeatMode
+import com.myndstream.myndcoresdk.audio.RoyaltyTrackingEvent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import models.*
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
+
 
 class MyndAudioPlayer(private val context: Context) {
-
     private var exoPlayer: ExoPlayer? = null
     public var currentPlaylist: PlaylistWithSongs? = null
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     private val _events = MutableSharedFlow<AudioPlayerEvent>()
+
+    private val _royaltyEvents = MutableSharedFlow<RoyaltyTrackingEvent>()
+    val royaltyEvents: SharedFlow<RoyaltyTrackingEvent> = _royaltyEvents.asSharedFlow()
     val events: Flow<AudioPlayerEvent> = _events.asSharedFlow()
 
     private var _state: PlaybackState = PlaybackState.Idle
@@ -45,35 +51,73 @@ class MyndAudioPlayer(private val context: Context) {
     }
 
     private fun initializePlayer() {
-        exoPlayer =
-                ExoPlayer.Builder(context).build().apply {
+        val player =
+            ExoPlayer.Builder(context)
+                .setAudioAttributes(AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                    .build(), true)
+                .build().apply {
+
                     addListener(
-                            object : Player.Listener {
-                                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                                    updateState()
-                                    if (isPlaying) {
-                                        startProgressUpdates()
-                                    } else {
-                                        stopProgressUpdates()
-                                    }
-                                }
+                        object : Player.Listener {
 
-                                override fun onPositionDiscontinuity(
-                                        oldPosition: Player.PositionInfo,
-                                        newPosition: Player.PositionInfo,
-                                        reason: Int
-                                ) {
-                                    updateProgress() // Update on seeks/track changes
-                                }
+                            override fun onMediaItemTransition(
+                                item: MediaItem?,
+                                reason: Int
+                            ) {
+                                val previousIdx: Int? = exoPlayer?.previousMediaItemIndex
+                                val currentIdx: Int? = exoPlayer?.currentMediaItemIndex
 
-                                override fun onPlayerError(error: PlaybackException) {
+                                println("index: "+currentIdx+" "+ previousIdx)
+
+                                if (previousIdx != null && previousIdx != -1){
                                     scope.launch {
-                                        _events.emit(AudioPlayerEvent.ErrorOccurred(error))
+                                        val song = currentPlaylist?.songs?.get(
+                                            previousIdx
+                                        )
+                                        if (song != null) {
+                                            _royaltyEvents.emit(RoyaltyTrackingEvent.TrackFinished(song))
+                                        }
                                     }
+                                }
+
+                                if (currentIdx != null && currentIdx != -1){
+                                    scope.launch {
+                                        _royaltyEvents.emit(RoyaltyTrackingEvent.TrackStarted(currentPlaylist?.songs?.get(currentIdx)!!))
+                                    }
+                                    updateProgress()
                                 }
                             }
+
+
+                            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                                updateState()
+                                if (isPlaying) {
+                                    startProgressUpdates()
+                                } else {
+                                    stopProgressUpdates()
+                                }
+                            }
+
+                            override fun onPositionDiscontinuity(
+                                oldPosition: Player.PositionInfo,
+                                newPosition: Player.PositionInfo,
+                                reason: Int
+                            ) {
+                                updateProgress() // Update on seeks/track changes
+                            }
+
+                            override fun onPlayerError(error: PlaybackException) {
+                                scope.launch {
+                                    _events.emit(AudioPlayerEvent.ErrorOccurred(error))
+                                }
+                            }
+                        }
                     )
                 }
+
+        exoPlayer = player
     }
 
     private var progressJob: Job? = null
@@ -81,12 +125,12 @@ class MyndAudioPlayer(private val context: Context) {
     private fun startProgressUpdates() {
         stopProgressUpdates() // Cancel any existing job
         progressJob =
-                scope.launch {
-                    while (isActive && isPlaying) {
-                        updateProgress()
-                        delay(1000)
-                    }
+            scope.launch {
+                while (isActive && isPlaying) {
+                    updateProgress()
+                    delay(1000)
                 }
+            }
     }
 
     private fun stopProgressUpdates() {
@@ -125,10 +169,10 @@ class MyndAudioPlayer(private val context: Context) {
 
     fun setRepeatMode(mode: RepeatMode) {
         val repeatMode =
-                when (mode) {
-                    RepeatMode.NONE -> Player.REPEAT_MODE_OFF
-                    RepeatMode.PLAYLIST -> Player.REPEAT_MODE_ALL
-                }
+            when (mode) {
+                RepeatMode.NONE -> Player.REPEAT_MODE_OFF
+                RepeatMode.PLAYLIST -> Player.REPEAT_MODE_ALL
+            }
         exoPlayer?.repeatMode = repeatMode
     }
 
@@ -137,11 +181,11 @@ class MyndAudioPlayer(private val context: Context) {
         val song = currentPlaylist?.songs?.getOrNull(currentIndex)
 
         _state =
-                when {
-                    song == null -> PlaybackState.Idle
-                    isPlaying -> PlaybackState.Playing(song, currentIndex)
-                    else -> PlaybackState.Paused(song, currentIndex)
-                }
+            when {
+                song == null -> PlaybackState.Idle
+                isPlaying -> PlaybackState.Playing(song, currentIndex)
+                else -> PlaybackState.Paused(song, currentIndex)
+            }
 
         scope.launch { _events.emit(AudioPlayerEvent.StateChanged(_state)) }
     }
@@ -155,24 +199,28 @@ class MyndAudioPlayer(private val context: Context) {
         val trackDuration = if (player.duration > 0) player.duration / 1000.0 else 0.0
 
         val (playlistTime, playlistDuration) =
-                calculatePlaylistProgress(playlist, currentIndex, trackTime)
+            calculatePlaylistProgress(playlist, currentIndex, trackTime)
 
         _progress =
-                PlaybackProgress(
-                        trackCurrentTime = trackTime,
-                        trackDuration = trackDuration,
-                        trackIndex = currentIndex,
-                        playlistCurrentTime = playlistTime,
-                        playlistDuration = playlistDuration
-                )
+            PlaybackProgress(
+                trackCurrentTime = trackTime,
+                trackDuration = trackDuration,
+                trackIndex = currentIndex,
+                playlistCurrentTime = playlistTime,
+                playlistDuration = playlistDuration
+            )
+
+        scope.launch {
+            _royaltyEvents.emit(RoyaltyTrackingEvent.TrackProgress(currentSong!!, _progress.trackProgress))
+        }
 
         scope.launch { _events.emit(AudioPlayerEvent.ProgressUpdated(_progress)) }
     }
 
     private fun calculatePlaylistProgress(
-            playlist: PlaylistWithSongs,
-            currentIndex: Int,
-            currentTrackTime: Double
+        playlist: PlaylistWithSongs,
+        currentIndex: Int,
+        currentTrackTime: Double
     ): Pair<Double, Double> {
         var totalTime = 0.0
         var currentTime = 0.0

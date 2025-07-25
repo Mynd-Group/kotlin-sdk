@@ -23,6 +23,7 @@ class MyndAudioClient(context: Context) : IAudioClient {
         get() = player.currentPlaylist
     override val volume: Float
         get() = player.volume
+    override val royaltyEvents: Flow<RoyaltyTrackingEvent> = player.royaltyEvents
 
     override suspend fun play(playlist: PlaylistWithSongs) {
         player.loadPlaylist(playlist)

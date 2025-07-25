@@ -6,6 +6,7 @@ import models.Song
 
 interface IAudioClient {
     val events: Flow<AudioPlayerEvent>
+    val royaltyEvents: Flow<RoyaltyTrackingEvent>
     val state: PlaybackState
     val progress: PlaybackProgress
 
@@ -37,12 +38,17 @@ sealed class AudioPlayerEvent {
     data class PlaylistQueued(val playlist: PlaylistWithSongs) : AudioPlayerEvent()
     data class StateChanged(val state: PlaybackState) : AudioPlayerEvent()
     data class ProgressUpdated(val progress: PlaybackProgress) : AudioPlayerEvent()
-    data class SongCompleted(val song: Song, val index: Int) : AudioPlayerEvent()
     object PlaylistCompleted : AudioPlayerEvent()
     object SongNetworkStalled : AudioPlayerEvent()
     data class SongNetworkFailure(val error: Throwable) : AudioPlayerEvent()
     data class ErrorOccurred(val error: Throwable) : AudioPlayerEvent()
     data class VolumeChanged(val volume: Float) : AudioPlayerEvent()
+}
+
+sealed class RoyaltyTrackingEvent {
+    data class TrackStarted(val song: Song) : RoyaltyTrackingEvent()
+    data class TrackProgress(val song: Song, val progress: Double) : RoyaltyTrackingEvent()
+    data class TrackFinished(val song: Song) : RoyaltyTrackingEvent()
 }
 
 sealed class PlaybackState {

@@ -2,7 +2,7 @@ package com.myndstream.myndcoresdk.public
 
 import android.content.Context
 import com.myndstream.myndcoresdk.audio.IAudioClient
-import com.myndstream.myndcoresdk.audio.MyndAudioClient
+import com.myndstream.myndcoresdk.exp.MyndAudioClient
 import com.myndstream.myndcoresdk.clients.ICatalogueClient
 import com.myndstream.myndcoresdk.clients.HttpClient
 import com.myndstream.myndcoresdk.clients.AuthClient
@@ -51,7 +51,7 @@ class MyndSDK private constructor(
                 baseUrl = Config.baseApiUrl
             )
 
-            val player = MyndAudioClient(ctx)
+            val player = MyndAudioClient.create(ctx)
 
             return MyndSDK(catalogueClient, player)
         }

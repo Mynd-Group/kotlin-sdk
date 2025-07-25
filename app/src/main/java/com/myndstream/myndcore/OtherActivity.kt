@@ -54,6 +54,13 @@ class OtherActivity : AppCompatActivity() {
 
             // 2) Start collecting player events
             launch {
+                sdk.player.royaltyEvents.collect { event ->
+                    println(event)
+                }
+            }
+
+
+            launch {
                 sdk.player.events.collect { event ->
                     when (event) {
                         is AudioPlayerEvent.PlaylistQueued -> {
@@ -72,7 +79,6 @@ class OtherActivity : AppCompatActivity() {
                             println(p)
                             Log.d(TAG, "Playlist ⏱️ ${p.trackIndex + 1}: ${p.playlistCurrentTime.toInt()}/${p.playlistDuration.toInt()}s")
                         }
-                        is AudioPlayerEvent.SongCompleted     -> Log.i(TAG, "✅ Completed: ${event.song.name}")
                         is AudioPlayerEvent.PlaylistCompleted -> Log.i(TAG, "🏁 Playlist completed")
                         is AudioPlayerEvent.SongNetworkStalled-> Log.w(TAG, "⚠️ Network stalled")
                         is AudioPlayerEvent.SongNetworkFailure-> Log.e(TAG, "❌ Network failure: ${event.error.message}")
