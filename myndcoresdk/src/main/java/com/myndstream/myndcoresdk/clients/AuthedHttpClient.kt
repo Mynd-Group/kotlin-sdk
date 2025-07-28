@@ -5,6 +5,11 @@ class AuthedHttpClient(
     private val client: IHttpClient
 ) : IHttpClient {
 
+    constructor(
+        authClient: AuthClient,
+        config: HttpClientConfig = HttpClientConfig()
+    ) : this(authClient, HttpClient(config))
+
     override suspend fun post(url: String, body: String, headers: Map<String, String>): String {
         val token = authClient.getAccessToken()
         val combinedHeaders = headers + ("Authorization" to "Bearer $token")

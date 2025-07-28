@@ -11,6 +11,7 @@ import com.myndstream.myndcoresdk.clients.AuthClient
 import com.myndstream.myndcoresdk.clients.AuthClientConfig
 import com.myndstream.myndcoresdk.clients.AuthedHttpClient
 import com.myndstream.myndcoresdk.clients.CatalogueClient
+import com.myndstream.myndcoresdk.clients.HttpClientConfig
 import models.AuthPayload
 
 interface IMyndSDK {
@@ -25,40 +26,64 @@ class MyndSDK private constructor(
 ) : IMyndSDK {
 
     companion object {
-        fun create(
+        @Volatile
+        private var INSTANCE: MyndSDK? = null
+
+        fun getOrCreate(
             authFunction: suspend () -> AuthPayload,
             ctx: Context
         ): MyndSDK {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: run {
+                    // Create HTTP client with internal config
+                    val httpConfig = HttpClientConfig(
+                        connectTimeoutMs = 5_000,
+                        readTimeoutMs = 5_000,
+                        writeTimeoutMs = 5_000,
+                        maxRetries = 3,
+                        retryDelayMs = 1_000
+                    )
+                    val httpClient = HttpClient(httpConfig)
 
-            // Create HTTP client
-            val httpClient = HttpClient()
+                    // Create auth client
+                    val authClient = AuthClient(
+                        config = AuthClientConfig(
+                            authFunction = authFunction,
+                            httpClient = httpClient,
+                            baseUrl = Config.baseApiUrl
+                        )
+                    )
 
-            // Create auth client
-            val authClient = AuthClient(
-                config = AuthClientConfig(
-                    authFunction = authFunction,
-                    httpClient = httpClient,
-                    baseUrl = Config.baseApiUrl
-                )
-            )
+                    // Create authed HTTP client
+                    val authedHttpClient = AuthedHttpClient(
+                        authClient = authClient,
+                        client = httpClient
+                    )
 
-            // Create authed HTTP client
-            val authedHttpClient = AuthedHttpClient(
-                authClient = authClient,
-                client = httpClient
-            )
+                    // Create catalogue client
+                    val catalogueClient = CatalogueClient(
+                        authedHttpClient = authedHttpClient,
+                        baseUrl = Config.baseApiUrl
+                    )
 
-            // Create catalogue client
-            val catalogueClient = CatalogueClient(
-                authedHttpClient = authedHttpClient,
-                baseUrl = Config.baseApiUrl
-            )
+                    val player = MyndAudioClient.create(ctx)
 
-            val player = MyndAudioClient.create(ctx)
+                    println("MyndSDK initialized as singleton")
 
-            println("MyndSDK initialized")
+                    MyndSDK(catalogueClient, player).also { INSTANCE = it }
+                }
+            }
+        }
 
-            return MyndSDK(catalogueClient, player)
+        fun release() {
+            synchronized(this) {
+                INSTANCE?.let { sdk ->
+                    // Release player resources
+                    (sdk.player as? MyndAudioClient)?.release()
+                }
+                INSTANCE = null
+                println("MyndSDK released")
+            }
         }
     }
 }

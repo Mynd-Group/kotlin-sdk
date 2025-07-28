@@ -43,8 +43,8 @@ class OtherActivity : AppCompatActivity() {
 
         // everything runs under lifecycleScope so it's auto‐cancelled in onDestroy()
         lifecycleScope.launch {
-            // 1) Initialize the SDK
-            sdk = MyndSDK.create(authFunction = { authFn() }, ctx = this@OtherActivity)
+            // 1) Get or create SDK singleton
+            sdk = MyndSDK.getOrCreate(authFunction = { authFn() }, ctx = this@OtherActivity)
 
             // 2) Start collecting player events
             launch {
