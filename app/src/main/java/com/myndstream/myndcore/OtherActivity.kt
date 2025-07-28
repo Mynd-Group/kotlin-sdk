@@ -9,11 +9,7 @@ import com.myndstream.myndcoresdk.playback.AudioPlayerEvent
 import com.myndstream.myndcoresdk.playback.PlaybackState
 import com.myndstream.myndcoresdk.clients.HttpClient
 import com.myndstream.myndcoresdk.public.MyndSDK
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
@@ -86,47 +82,39 @@ class OtherActivity : AppCompatActivity() {
                 }
             }
 
-            // 3) Playlist‐switcher loop
+            // 3) Play single playlist
             launch {
-                try {
-                    // fetch & filter once
-                    val categories = sdk.catalogueClient.getCategories()
-                    if (categories.isEmpty()) {
-                        Log.w(TAG, "No categories found.")
-                        return@launch
-                    }
-                    val all = sdk.catalogueClient.getPlaylists(categories.first().id)
-                    val filtered = all.filter { it.name.contains("12") }
-                    if (filtered.isEmpty()) {
-                        Log.w(TAG, "No playlists match “12”.")
-                        return@launch
-                    }
+                // fetch & filter once
+                val categoriesResult = sdk.catalogueClient.getCategories()
+                if (categoriesResult.isFailure) {
+                    Log.e(TAG, "Failed to fetch categories: ${categoriesResult.exceptionOrNull()?.message}")
+                    return@launch
+                }
+                val categories = categoriesResult.getOrThrow()
+                if (categories.isEmpty()) {
+                    Log.w(TAG, "No categories found.")
+                    return@launch
+                }
+                val playlistsResult = sdk.catalogueClient.getPlaylists(categories.first().id)
+                if (playlistsResult.isFailure) {
+                    Log.e(TAG, "Failed to fetch playlists: ${playlistsResult.exceptionOrNull()?.message}")
+                    return@launch
+                }
+                val all = playlistsResult.getOrThrow()
+                val filtered = all.filter { it.name.contains("12") }
+                if (filtered.isEmpty()) {
+                    return@launch
+                }
 
-                    Log.i(TAG, "Starting coroutine looper for playlists with “12”…")
-                    var idx = 0
-
-                    // loop until the Activity is destroyed
-                    while (isActive) {
-                        val summary = filtered[idx % filtered.size]
-                        idx++
-
-                        // network calls are suspend, so off‐main is fine—but
-                        // if you want to ensure not blocking UI, you could wrap in withContext(Dispatchers.IO)
-                        try {
-                            val full = withContext(Dispatchers.IO) {
-                                sdk.catalogueClient.getPlaylist(summary.id)
-                            }
-                            sdk.player.play(full)
-                            Log.i(TAG, "Now playing: ${full.playlist.name}")
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed loading ${summary.id}", e)
-                        }
-
-                        // wait 5 seconds before next
-                        delay(10_000)
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Looper setup failed", e)
+                // Play the first matching playlist
+                val summary = filtered.first()
+                val playlistResult = sdk.catalogueClient.getPlaylist(summary.id)
+                if (playlistResult.isFailure) {
+                    Log.e(TAG, "Failed to fetch playlist ${summary.id}: ${playlistResult.exceptionOrNull()?.message}")
+                } else {
+                    val full = playlistResult.getOrThrow()
+                    sdk.player.play(full)
+                    Log.i(TAG, "Now playing: ${full.playlist.name}")
                 }
             }
         }
