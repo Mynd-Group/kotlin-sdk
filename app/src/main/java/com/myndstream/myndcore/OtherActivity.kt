@@ -5,8 +5,8 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.myndstream.myndcoresdk.audio.AudioPlayerEvent
-import com.myndstream.myndcoresdk.audio.PlaybackState
+import com.myndstream.myndcoresdk.playback.AudioPlayerEvent
+import com.myndstream.myndcoresdk.playback.PlaybackState
 import com.myndstream.myndcoresdk.clients.HttpClient
 import com.myndstream.myndcoresdk.public.MyndSDK
 import kotlinx.coroutines.Dispatchers
@@ -18,8 +18,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import models.AuthPayload
-import java.util.Timer
-import kotlin.concurrent.scheduleAtFixedRate
 
 @SuppressLint("UnsafeOptInUsageError")
 @Serializable
@@ -55,7 +53,7 @@ class OtherActivity : AppCompatActivity() {
             // 2) Start collecting player events
             launch {
                 sdk.player.royaltyEvents.collect { event ->
-                    println(event)
+                    println("Royalty Event: "+event)
                 }
             }
 
@@ -111,10 +109,6 @@ class OtherActivity : AppCompatActivity() {
                     while (isActive) {
                         val summary = filtered[idx % filtered.size]
                         idx++
-
-                        sdk.player.pause()
-                        delay(500)
-                        sdk.player.resume()
 
                         // network calls are suspend, so off‐main is fine—but
                         // if you want to ensure not blocking UI, you could wrap in withContext(Dispatchers.IO)
