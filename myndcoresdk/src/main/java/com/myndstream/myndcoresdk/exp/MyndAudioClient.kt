@@ -2,12 +2,12 @@ package com.myndstream.myndcoresdk.exp
 
 import android.content.Context
 import android.content.Intent
-import com.myndstream.myndcoresdk.audio.AudioPlayerEvent
-import com.myndstream.myndcoresdk.audio.IAudioClient
-import com.myndstream.myndcoresdk.audio.PlaybackProgress
-import com.myndstream.myndcoresdk.audio.PlaybackState
-import com.myndstream.myndcoresdk.audio.RepeatMode
-import com.myndstream.myndcoresdk.audio.RoyaltyTrackingEvent
+import com.myndstream.myndcoresdk.playback.AudioPlayerEvent
+import com.myndstream.myndcoresdk.playback.IAudioClient
+import com.myndstream.myndcoresdk.playback.PlaybackProgress
+import com.myndstream.myndcoresdk.playback.PlaybackState
+import com.myndstream.myndcoresdk.playback.RepeatMode
+import com.myndstream.myndcoresdk.playback.RoyaltyTrackingEvent
 import kotlinx.coroutines.flow.Flow
 import models.PlaylistWithSongs
 import models.Song
