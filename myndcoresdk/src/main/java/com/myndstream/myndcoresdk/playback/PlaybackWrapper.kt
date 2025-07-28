@@ -123,13 +123,23 @@ class PlaybackWrapper private constructor(
         }
 
         currentPlaylist = playlist
-        val mediaItems = playlist.songs.map { song ->
+        
+        // Keep individual tracks but show playlist-level metadata
+        // The progress will still be track-based, but the display shows playlist context
+        val mediaItems = playlist.songs.mapIndexed { index, song ->
             MediaItem.Builder()
                 .setUri(song.audio.mp3.url)
                 .setMediaMetadata(
                     androidx.media3.common.MediaMetadata.Builder()
-                        .setTitle(song.name)
-                        .setArtist(song.artists.joinToString(", ") { it.name })
+                        .setTitle(playlist.playlist.name)
+                        .setArtist("Track ${index + 1} of ${playlist.songs.size}")
+                        .setAlbumTitle(playlist.playlist.description ?: "Playlist")
+                        .setGenre(playlist.playlist.genre)
+                        .apply {
+                            playlist.playlist.image?.url?.let { imageUrl ->
+                                setArtworkUri(android.net.Uri.parse(imageUrl))
+                            }
+                        }
                         .build()
                 )
                 .build()
