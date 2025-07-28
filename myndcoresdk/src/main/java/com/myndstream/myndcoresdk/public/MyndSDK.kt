@@ -1,8 +1,10 @@
 package com.myndstream.myndcoresdk.public
 
 import android.content.Context
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
 import com.myndstream.myndcoresdk.audio.IAudioClient
-import com.myndstream.myndcoresdk.exp.MyndAudioClient
+import com.myndstream.myndcoresdk.playback.MyndAudioClient
 import com.myndstream.myndcoresdk.clients.ICatalogueClient
 import com.myndstream.myndcoresdk.clients.HttpClient
 import com.myndstream.myndcoresdk.clients.AuthClient
@@ -16,6 +18,7 @@ interface IMyndSDK {
     val player: IAudioClient
 }
 
+@OptIn(UnstableApi::class)
 class MyndSDK private constructor(
     override val catalogueClient: ICatalogueClient,
     override val player: IAudioClient
@@ -52,6 +55,8 @@ class MyndSDK private constructor(
             )
 
             val player = MyndAudioClient.create(ctx)
+
+            println("MyndSDK initialized")
 
             return MyndSDK(catalogueClient, player)
         }

@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.myndstream.myndcoresdk.audio.IAudioClient
-import com.myndstream.myndcoresdk.audio.MyndAudioClient
+import com.myndstream.myndcoresdk.playback.MyndAudioClient
 import com.myndstream.myndcoresdk.audio.AudioPlayerEvent
 import com.myndstream.myndcoresdk.audio.PlaybackState
 import kotlinx.coroutines.launch
