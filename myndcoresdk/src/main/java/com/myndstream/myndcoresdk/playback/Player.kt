@@ -1,4 +1,4 @@
-package com.myndstream.myndcoresdk.audio
+package com.myndstream.myndcoresdk.playback
 
 import kotlinx.coroutines.flow.Flow
 import models.PlaylistWithSongs

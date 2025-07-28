@@ -1,6 +1,5 @@
 package com.myndstream.myndcoresdk.playback
 
-import android.app.PendingIntent
 import android.content.Intent
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi

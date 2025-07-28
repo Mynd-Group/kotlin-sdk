@@ -3,7 +3,7 @@ package com.myndstream.myndcoresdk.public
 import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
-import com.myndstream.myndcoresdk.audio.IAudioClient
+import com.myndstream.myndcoresdk.playback.IAudioClient
 import com.myndstream.myndcoresdk.playback.MyndAudioClient
 import com.myndstream.myndcoresdk.clients.ICatalogueClient
 import com.myndstream.myndcoresdk.clients.HttpClient
