@@ -13,14 +13,16 @@ import models.PlaylistWithSongs
 import models.Song
 
 @UnstableApi
-class MyndAudioClient(private val ctx: Context): IAudioClient {
+class MyndAudioClient(private val ctx: Context, private val enableBackgroundService: Boolean = true): IAudioClient {
     private val player = PlayerWrapper.create(ctx)
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
 
     init {
-        // Set the player instance for the service
-        MyndPlaybackService.setPlayer(player.exoPlayer)
+        if (enableBackgroundService) {
+            // Set the player instance for the service
+            MyndPlaybackService.setPlayer(player.exoPlayer)
+        }
     }
 
     override val events: Flow<AudioPlayerEvent> = player.events
@@ -39,12 +41,14 @@ class MyndAudioClient(private val ctx: Context): IAudioClient {
     override val royaltyEvents: Flow<RoyaltyTrackingEvent> = player.royaltyEvents
 
     override suspend fun play(playlist: PlaylistWithSongs) {
-        // Start the service
-        val intent = Intent(ctx, MyndPlaybackService::class.java)
-        ctx.startService(intent)
+        if (enableBackgroundService) {
+            // Start the service
+            val intent = Intent(ctx, MyndPlaybackService::class.java)
+            ctx.startService(intent)
 
-        // Connect to the MediaSession
-        connectToSession()
+            // Connect to the MediaSession
+            connectToSession()
+        }
 
         // Load and play
         player.loadPlaylist(playlist)
@@ -65,8 +69,10 @@ class MyndAudioClient(private val ctx: Context): IAudioClient {
 
     override suspend fun stop() {
         player.stop()
-        val intent = Intent(ctx, MyndPlaybackService::class.java)
-        ctx.stopService(intent)
+        if (enableBackgroundService) {
+            val intent = Intent(ctx, MyndPlaybackService::class.java)
+            ctx.stopService(intent)
+        }
     }
 
     override fun setRepeatMode(mode: RepeatMode) = player.setRepeatMode(mode)
@@ -76,13 +82,15 @@ class MyndAudioClient(private val ctx: Context): IAudioClient {
 
     fun release() {
         player.release()
-        MediaController.releaseFuture(controllerFuture ?: return)
-        MyndPlaybackService.clearPlayer()
+        if (enableBackgroundService) {
+            MediaController.releaseFuture(controllerFuture ?: return)
+            MyndPlaybackService.clearPlayer()
+        }
     }
 
     companion object {
-        fun create(ctx: Context): MyndAudioClient {
-            return MyndAudioClient(ctx)
+        fun create(ctx: Context, enableBackgroundService: Boolean = true): MyndAudioClient {
+            return MyndAudioClient(ctx, enableBackgroundService)
         }
     }
 }
