@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.myndstream.myndcoresdk.playback.IAudioClient
-import com.myndstream.myndcoresdk.playback.MyndAudioClient
+import com.myndstream.myndcoresdk.playback.PlaybackClient
 import com.myndstream.myndcoresdk.playback.AudioPlayerEvent
 import com.myndstream.myndcoresdk.playback.PlaybackState
 import kotlinx.coroutines.launch
@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun testAudioPlayer() {
         try {
-            val audioClient: IAudioClient = MyndAudioClient(this)
+            val audioClient: IAudioClient = PlaybackClient(this)
             println("✅ Audio client created successfully!")
 
             lifecycleScope.launch {

@@ -13,7 +13,7 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
 @UnstableApi
-class MyndPlaybackService : MediaSessionService() {
+class AndroidPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
 
     companion object {

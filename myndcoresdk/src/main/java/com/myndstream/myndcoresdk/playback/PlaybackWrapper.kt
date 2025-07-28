@@ -11,7 +11,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import models.*
 
-class PlayerWrapper private constructor(
+class PlaybackWrapper private constructor(
     public val exoPlayer: ExoPlayer
 ) {
     var currentPlaylist: PlaylistWithSongs? = null
@@ -243,7 +243,7 @@ class PlayerWrapper private constructor(
     }
 
     companion object {
-        fun create(context: Context): PlayerWrapper {
+        fun create(context: Context): PlaybackWrapper {
             val exoPlayer = ExoPlayer.Builder(context)
                 .setAudioAttributes(
                     AudioAttributes.Builder()
@@ -254,7 +254,7 @@ class PlayerWrapper private constructor(
                 )
                 .build()
 
-            return PlayerWrapper(exoPlayer)
+            return PlaybackWrapper(exoPlayer)
         }
     }
 }

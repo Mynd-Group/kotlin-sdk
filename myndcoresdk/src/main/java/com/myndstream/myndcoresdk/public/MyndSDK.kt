@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import com.myndstream.myndcoresdk.playback.IAudioClient
-import com.myndstream.myndcoresdk.playback.MyndAudioClient
+import com.myndstream.myndcoresdk.playback.PlaybackClient
 import com.myndstream.myndcoresdk.clients.ICatalogueClient
 import com.myndstream.myndcoresdk.clients.HttpClient
 import com.myndstream.myndcoresdk.clients.AuthClient
@@ -66,7 +66,7 @@ class MyndSDK private constructor(
                         baseUrl = Config.baseApiUrl
                     )
 
-                    val player = MyndAudioClient.create(ctx)
+                    val player = PlaybackClient.create(ctx)
 
                     println("MyndSDK initialized as singleton")
 
@@ -79,7 +79,7 @@ class MyndSDK private constructor(
             synchronized(this) {
                 INSTANCE?.let { sdk ->
                     // Release player resources
-                    (sdk.player as? MyndAudioClient)?.release()
+                    (sdk.player as? PlaybackClient)?.release()
                 }
                 INSTANCE = null
                 println("MyndSDK released")

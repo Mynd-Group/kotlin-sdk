@@ -13,15 +13,15 @@ import models.PlaylistWithSongs
 import models.Song
 
 @UnstableApi
-class MyndAudioClient(private val ctx: Context, private val enableBackgroundService: Boolean = true): IAudioClient {
-    private val player = PlayerWrapper.create(ctx)
+class PlaybackClient(private val ctx: Context, private val enableBackgroundService: Boolean = true): IAudioClient {
+    private val player = PlaybackWrapper.create(ctx)
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
 
     init {
         if (enableBackgroundService) {
             // Set the player instance for the service
-            MyndPlaybackService.setPlayer(player.exoPlayer)
+            AndroidPlaybackService.setPlayer(player.exoPlayer)
         }
     }
 
@@ -43,7 +43,7 @@ class MyndAudioClient(private val ctx: Context, private val enableBackgroundServ
     override suspend fun play(playlist: PlaylistWithSongs) {
         if (enableBackgroundService) {
             // Start the service
-            val intent = Intent(ctx, MyndPlaybackService::class.java)
+            val intent = Intent(ctx, AndroidPlaybackService::class.java)
             ctx.startService(intent)
 
             // Connect to the MediaSession
@@ -57,7 +57,7 @@ class MyndAudioClient(private val ctx: Context, private val enableBackgroundServ
 
     private fun connectToSession() {
         println("Connecting to session")
-        val sessionToken = SessionToken(ctx, ComponentName(ctx, MyndPlaybackService::class.java))
+        val sessionToken = SessionToken(ctx, ComponentName(ctx, AndroidPlaybackService::class.java))
         controllerFuture = MediaController.Builder(ctx, sessionToken).buildAsync()
         controllerFuture?.addListener({
             mediaController = controllerFuture?.get()
@@ -70,7 +70,7 @@ class MyndAudioClient(private val ctx: Context, private val enableBackgroundServ
     override suspend fun stop() {
         player.stop()
         if (enableBackgroundService) {
-            val intent = Intent(ctx, MyndPlaybackService::class.java)
+            val intent = Intent(ctx, AndroidPlaybackService::class.java)
             ctx.stopService(intent)
         }
     }
@@ -84,13 +84,13 @@ class MyndAudioClient(private val ctx: Context, private val enableBackgroundServ
         player.release()
         if (enableBackgroundService) {
             MediaController.releaseFuture(controllerFuture ?: return)
-            MyndPlaybackService.clearPlayer()
+            AndroidPlaybackService.clearPlayer()
         }
     }
 
     companion object {
-        fun create(ctx: Context, enableBackgroundService: Boolean = true): MyndAudioClient {
-            return MyndAudioClient(ctx, enableBackgroundService)
+        fun create(ctx: Context, enableBackgroundService: Boolean = true): PlaybackClient {
+            return PlaybackClient(ctx, enableBackgroundService)
         }
     }
 }
