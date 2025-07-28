@@ -41,7 +41,11 @@ class PlaybackWrapper private constructor(
     var volume: Float
         get() = exoPlayer.volume
         set(value) {
-            exoPlayer.volume = value.coerceIn(0f, 1f)
+            val newVolume = value.coerceIn(0f, 1f)
+            exoPlayer.volume = newVolume
+            scope.launch {
+                _events.emit(AudioPlayerEvent.VolumeChanged(newVolume))
+            }
         }
 
     private var progressJob: Job? = null
