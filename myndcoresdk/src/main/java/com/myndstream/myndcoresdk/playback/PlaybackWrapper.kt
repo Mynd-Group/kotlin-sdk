@@ -7,6 +7,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.C.WAKE_MODE_NETWORK
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import models.*
@@ -267,6 +268,7 @@ class PlaybackWrapper private constructor(
                     true
                 )
                 .build()
+            exoPlayer.setWakeMode(WAKE_MODE_NETWORK)
 
             return PlaybackWrapper(exoPlayer)
         }
