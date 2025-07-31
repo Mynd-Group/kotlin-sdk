@@ -19,15 +19,15 @@ import models.AuthPayload
 @Serializable
 data class AuthRequest(val providerUserId: String)
 
-suspend fun authFn(): AuthPayload {
+suspend fun getInitialRefreshToken(): String {
     val client = HttpClient()
     val json = Json { ignoreUnknownKeys = true }
     val request = AuthRequest("test-user-id")
     val serialized = json.encodeToString(request)
     val result = client.post(Config.baseApiUrl+"/integration-user/authenticate", serialized ,mapOf("x-api-key" to "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbnRlZ3JhdGlvbkFwaUtleUlkIjoiZTBmMzQ1YmEtYWRiYi00OWU4LWE2NjMtZjkxNzIzYTc0OGQxIiwiYWNjb3VudElkIjoiMTBlOTlmMzAtNDlkNy00ZDljLWFiMWEtMmU2MjYxMTk2YTRiIiwiaWF0IjoxNzUyNTk1NDM4fQ.t--RVG-3F3fhXgKHyrZRAKlpmUvM-Lwu_svcSCN9pHU"))
-    return json.decodeFromString<AuthPayload>(result)
+    val authPayload = json.decodeFromString<AuthPayload>(result)
+    return authPayload.refreshToken
 }
-
 
 
 class OtherActivity : AppCompatActivity() {
@@ -43,8 +43,9 @@ class OtherActivity : AppCompatActivity() {
 
         // everything runs under lifecycleScope so it's auto‐cancelled in onDestroy()
         lifecycleScope.launch {
-            // 1) Get or create SDK singleton
-            sdk = MyndSDK.getOrCreate(authFunction = { authFn() }, ctx = this@OtherActivity)
+            // 1) Get initial refresh token and create SDK singleton
+            val refreshToken = getInitialRefreshToken()
+            sdk = MyndSDK.getOrCreate(refreshToken = refreshToken, ctx = this@OtherActivity)
 
             // 2) Start collecting player events
             launch {
