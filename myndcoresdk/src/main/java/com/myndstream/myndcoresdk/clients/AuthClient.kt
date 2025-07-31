@@ -20,7 +20,7 @@ data class RefreshRequest(val refreshToken: String)
 
 // Configuration
 data class AuthClientConfig(
-    val authFunction: suspend () -> AuthPayload,
+    val refreshToken: String,
     val httpClient: IHttpClient,
     val baseUrl: String
 )
@@ -56,12 +56,12 @@ class AuthClient(private val config: AuthClientConfig) {
     }
 
     private suspend fun handleNoAuthPayload(): String {
-        println("AuthClient: No auth payload, launching auth function")
+        println("AuthClient: No auth payload, getting initial access token")
 
         val task = scope.async {
-            println("AuthClient: Launching auth function")
-            val payload = config.authFunction()
-            println("AuthClient: Auth function returned payload")
+            println("AuthClient: Getting access token with refresh token")
+            val payload = getAccessTokenWithRefreshToken(config.refreshToken)
+            println("AuthClient: Got initial access token")
             payload
         }
 
@@ -80,14 +80,9 @@ class AuthClient(private val config: AuthClientConfig) {
         println("AuthClient: Token is expired, refreshing")
 
         val task = scope.async {
-            try {
-                refreshAccessToken() ?: run {
-                    println("AuthClient: Refresh token returned null payload")
-                    throw AuthError.InvalidRefreshToken
-                }
-            } catch (e: Exception) {
-                println("AuthClient: Refresh failed, falling back to auth function")
-                config.authFunction()
+            refreshAccessToken() ?: run {
+                println("AuthClient: Refresh token returned null payload")
+                throw AuthError.InvalidRefreshToken
             }
         }
 
@@ -115,6 +110,29 @@ class AuthClient(private val config: AuthClientConfig) {
     private fun handleValidAuthPayload(payload: AuthPayload): String {
         println("AuthClient: Token is not expired, returning token")
         return payload.accessToken
+    }
+
+    private suspend fun getAccessTokenWithRefreshToken(refreshToken: String): AuthPayload {
+        println("AuthClient: Getting access token with refresh token")
+
+        val url = "${config.baseUrl}/integration-user/refresh-token"
+
+        return try {
+            val requestJson = json.encodeToString(RefreshRequest(refreshToken))
+
+            val responseJson = config.httpClient.post(
+                url = url,
+                body = requestJson,
+                headers = mapOf("Content-Type" to "application/json")
+            )
+
+            val response = json.decodeFromString<AuthPayload>(responseJson)
+            println("AuthClient: Successfully got access token")
+            response
+        } catch (e: Exception) {
+            println("AuthClient: Failed to get access token: ${e.message}")
+            throw AuthError.InvalidRefreshToken
+        }
     }
 
     private suspend fun refreshAccessToken(): AuthPayload? {

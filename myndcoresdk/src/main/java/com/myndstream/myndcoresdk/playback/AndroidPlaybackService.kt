@@ -51,11 +51,9 @@ class AndroidPlaybackService : MediaSessionService() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        val player = mediaSession?.player
-        if (player != null && !player.playWhenReady) {
-            // If the player is paused, stop the service
-            stopSelf()
-        }
+        // Always stop playback and service when app is killed
+        mediaSession?.player?.stop()
+        stopSelf()
         super.onTaskRemoved(rootIntent)
     }
 

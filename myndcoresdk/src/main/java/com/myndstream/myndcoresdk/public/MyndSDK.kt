@@ -30,7 +30,7 @@ class MyndSDK private constructor(
         private var INSTANCE: MyndSDK? = null
 
         fun getOrCreate(
-            authFunction: suspend () -> AuthPayload,
+            refreshToken: String,
             ctx: Context
         ): MyndSDK {
             return INSTANCE ?: synchronized(this) {
@@ -48,7 +48,7 @@ class MyndSDK private constructor(
                     // Create auth client
                     val authClient = AuthClient(
                         config = AuthClientConfig(
-                            authFunction = authFunction,
+                            refreshToken = refreshToken,
                             httpClient = httpClient,
                             baseUrl = Config.baseApiUrl
                         )
