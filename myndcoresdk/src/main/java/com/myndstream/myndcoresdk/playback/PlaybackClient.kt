@@ -42,10 +42,10 @@ class PlaybackClient(private val ctx: Context, private val enableBackgroundServi
 
     override suspend fun play(playlist: PlaylistWithSongs) {
         if (enableBackgroundService) {
-            // Start the service
-            val intent = Intent(ctx, AndroidPlaybackService::class.java)
-            ctx.startService(intent)
-
+//            // Start the service
+//            val intent = Intent(ctx, AndroidPlaybackService::class.java)
+//            ctx.startService(intent)
+//
             // Connect to the MediaSession
             connectToSession()
         }
@@ -56,6 +56,11 @@ class PlaybackClient(private val ctx: Context, private val enableBackgroundServi
     }
 
     private fun connectToSession() {
+        if (controllerFuture != null) {
+            println("Controller already created, skipping create new session")
+            return
+        }
+
         println("Connecting to session")
         val sessionToken = SessionToken(ctx, ComponentName(ctx, AndroidPlaybackService::class.java))
         controllerFuture = MediaController.Builder(ctx, sessionToken).buildAsync()
@@ -69,10 +74,6 @@ class PlaybackClient(private val ctx: Context, private val enableBackgroundServi
 
     override suspend fun stop() {
         player.stop()
-        if (enableBackgroundService) {
-            val intent = Intent(ctx, AndroidPlaybackService::class.java)
-            ctx.stopService(intent)
-        }
     }
 
     override fun setRepeatMode(mode: RepeatMode) = player.setRepeatMode(mode)

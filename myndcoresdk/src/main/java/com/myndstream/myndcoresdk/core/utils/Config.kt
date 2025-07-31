@@ -1,5 +1,5 @@
 class Config(){
     companion object {
-        val baseApiUrl = "http://10.0.2.2:4000/api/v1"
+        val baseApiUrl = "https://noted-fluent-termite.ngrok-free.app/api/v1"
     }
 }

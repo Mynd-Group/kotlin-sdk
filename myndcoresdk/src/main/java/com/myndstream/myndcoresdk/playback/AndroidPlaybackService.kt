@@ -19,6 +19,12 @@ class AndroidPlaybackService : MediaSessionService() {
     companion object {
         private var exoPlayerInstance: ExoPlayer? = null
 
+        //REFACTOR: later
+        // NOTE: this is a little insane
+        // the reason for it is that we do not instantiate this ourselves
+        // the controller/android magic does so we cannot pass anything into the contructor
+        // the nicer way of doing this would be to expose the player via a method here and either using this or
+        // the player directly if we dont want this service
         fun setPlayer(player: ExoPlayer) {
             exoPlayerInstance = player
         }
