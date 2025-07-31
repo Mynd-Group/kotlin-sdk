@@ -2,12 +2,12 @@ package com.myndstream.myndcoresdk
 
 import com.myndstream.myndcoresdk.clients.AuthClient
 import com.myndstream.myndcoresdk.clients.AuthClientConfig
-import com.myndstream.myndcoresdk.clients.AuthPayload
 import com.myndstream.myndcoresdk.clients.HttpClient
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.Serializable
+import models.AuthPayload
 import org.junit.Test
 import org.junit.Assert.*
 
