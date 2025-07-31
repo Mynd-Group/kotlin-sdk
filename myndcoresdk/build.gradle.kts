@@ -58,6 +58,10 @@ dependencies {
 publishing {
     publications {
         register<MavenPublication>("release") {
+            groupId = "com.github.Mynd-Group"
+            artifactId = "kotlin-sdk"
+            version = "1.0.0"
+
             afterEvaluate {
                 from(components["release"])
             }
