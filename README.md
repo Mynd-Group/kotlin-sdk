@@ -41,6 +41,8 @@ MyndSDK enables Android applications to access curated music content through a r
 
 ### Installation
 
+https://jitpack.io/#Mynd-Group/kotlin-sdk
+
 The SDK is distributed via JitPack. Add the JitPack repository and dependency to your `build.gradle.kts`:
 
 ```kotlin
