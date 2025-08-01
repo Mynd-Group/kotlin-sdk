@@ -55,9 +55,84 @@ allprojects {
 
 // Module-level build.gradle.kts
 dependencies {
-    implementation("com.github.myndstream:MyndCore:1.0.0")
+    implementation("com.github.Mynd-Group:kotlin-sdk:v1.1.0")
 }
 ```
+
+### Authentication Setup
+
+Before using the SDK, you need to set up authentication through your backend. The MyndSDK requires a refresh token to initialize, which must be obtained by calling the Myndstream API from your secure backend endpoint.
+
+**Important**: Never store API keys or make direct calls to the Myndstream API from your mobile app for security reasons.
+
+#### Backend Integration Required
+
+1. **Create a secure endpoint** in your backend that:
+   - Accepts your user's identifier
+   - Calls the Myndstream authentication API using your API key
+   - Returns the authentication tokens to your app
+
+2. **Your mobile app** should:
+   - Call your backend endpoint
+   - Receive the refresh token
+   - Use it to initialize the MyndSDK
+
+#### Example Implementation
+
+**Your Backend Endpoint** (conceptual):
+```
+POST /api/auth/myndstream
+
+1. Authenticate the incoming request using your existing auth system
+2. Extract the authenticated user's ID
+3. Make a request to Myndstream API:
+
+   POST https://app.myndstream.com/api/v1/integration-user/authenticate
+   Headers:
+     x-api-key: YOUR_MYNDSTREAM_API_KEY
+     Content-Type: application/json
+   Body:
+     {
+       "providerUserId": "authenticated_user_id"
+     }
+
+4. Return the authentication response to your mobile app
+```
+
+**Your Android App**:
+```kotlin
+// 1. Call your backend endpoint to get Myndstream tokens
+suspend fun getMyndstreamRefreshToken(): String {
+    // Implementation depends on your networking layer and auth system
+    // - Make authenticated request to your backend
+    // - Parse the response to extract refreshToken
+    // - Return the refreshToken string
+    
+    // Example using your HTTP client:
+    val response = yourHttpClient.post(
+        url = "https://your-backend.com/api/auth/myndstream",
+        headers = mapOf("Authorization" to "Bearer ${yourUserToken}")
+    )
+    val authData = Json.decodeFromString<AuthResponse>(response)
+    return authData.refreshToken
+}
+
+// 2. Initialize SDK with the refresh token
+suspend fun initializeSDK(context: Context): MyndSDK {
+    val refreshToken = getMyndstreamRefreshToken()
+    return MyndSDK.getOrCreate(
+        refreshToken = refreshToken,
+        ctx = context
+    )
+}
+```
+
+**Security Best Practices:**
+- Store your Myndstream API key securely on your backend server
+- Validate user authentication before issuing Myndstream tokens
+- Consider implementing token refresh logic in your backend
+- Use HTTPS for all API communications
+- Implement proper error handling for authentication failures
 
 ### Basic Usage
 
