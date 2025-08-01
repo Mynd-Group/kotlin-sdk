@@ -1,5 +1,5 @@
-class Config(){
+class Config() {
     companion object {
-        val baseApiUrl = "https://noted-fluent-termite.ngrok-free.app/api/v1"
+        val baseApiUrl = "https://app.myndstream.com/api/v1"
     }
 }
