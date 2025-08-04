@@ -42,7 +42,11 @@ class CatalogueClient(
 
     override suspend fun getPlaylists(categoryId: String?): Result<List<Playlist>> =
         runCatching {
-            val url = "$baseUrl/integration/catalogue/playlists"
+            val url = if (categoryId != null) {
+                "$baseUrl/integration/catalogue/playlists?categoryId=$categoryId"
+            } else {
+                "$baseUrl/integration/catalogue/playlists"
+            }
             println("Fetching playlists from $url (filter: $categoryId)")
             val responseJson = authedHttpClient.get(url, headers = emptyMap())
             json.decodeFromString<List<Playlist>>(responseJson).also {
