@@ -57,7 +57,7 @@ allprojects {
 
 // Module-level build.gradle.kts
 dependencies {
-    implementation("com.github.Mynd-Group:kotlin-sdk:v1.1.0")
+    implementation("com.github.Mynd-Group:kotlin-sdk:v1.3.0")
 }
 ```
 
@@ -148,6 +148,9 @@ val sdk = MyndSDK.getOrCreate(
 // Browse catalogue
 val categories = sdk.catalogueClient.getCategories().getOrNull()
 val playlists = sdk.catalogueClient.getPlaylists(categoryId = null).getOrNull()
+val playlistsForFirstCategory = categories?.firstOrNull()?.let { cat ->
+    sdk.catalogueClient.getPlaylists(categoryId = cat.id).getOrNull()
+}
 
 // Play music
 val playlistWithSongs = sdk.catalogueClient.getPlaylist("playlist_id").getOrNull()
@@ -159,6 +162,9 @@ playlistWithSongs?.let { playlist ->
 sdk.player.pause()
 sdk.player.resume()
 sdk.player.setVolume(0.8f)
+
+// Optional: provide user feedback
+sdk.setCurrentMood(0.7f)
 
 // Monitor playback events
 sdk.player.events.collect { event ->
@@ -180,6 +186,8 @@ Main entry point providing access to catalogue and playback functionality.
 interface IMyndSDK {
     val catalogueClient: ICatalogueClient
     val player: IAudioClient
+    fun setCurrentMood(mood: Float)
+    fun rateListeningSession(rating: Float)
 }
 ```
 

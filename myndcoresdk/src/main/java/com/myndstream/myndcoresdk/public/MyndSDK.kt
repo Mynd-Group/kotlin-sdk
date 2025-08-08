@@ -17,6 +17,9 @@ import models.AuthPayload
 interface IMyndSDK {
     val catalogueClient: ICatalogueClient
     val player: IAudioClient
+
+    fun setCurrentMood(mood: Float)
+    fun rateListeningSession(rating:Float)
 }
 
 @OptIn(UnstableApi::class)
@@ -24,6 +27,26 @@ class MyndSDK private constructor(
     override val catalogueClient: ICatalogueClient,
     override val player: IAudioClient
 ) : IMyndSDK {
+
+    override fun setCurrentMood(mood: Float) {
+        if (mood < 0 || mood > 1) {
+            throw IllegalArgumentException("Mood should be between 0 and 1")
+        }
+
+        // TODO: implement
+
+        return
+    }
+
+    override fun rateListeningSession(rating: Float) {
+        if (rating < 0 || rating > 1) {
+            throw IllegalArgumentException("Rating should be between 0 and 1")
+        }
+
+        // TODO: implement
+
+        return
+    }
 
     companion object {
         @Volatile
