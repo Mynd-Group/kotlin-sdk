@@ -68,7 +68,7 @@ class TrackingClient(private val authedHttpClient: IHttpClient, private val base
                                                 playlistId = null,
                                                 progress = null,
                                                 playlistSessionId =
-                                                        event.playlistSessionId.ifBlank { null }
+                                                        event.playlistSessionId
                                         )
                                 is TrackProgress -> {
                                         val p = event.progress
@@ -101,7 +101,7 @@ class TrackingClient(private val authedHttpClient: IHttpClient, private val base
                                                 playlistId = null,
                                                 progress = threshold,
                                                 playlistSessionId =
-                                                        event.playlistSessionId.ifBlank { null }
+                                                        event.playlistSessionId
                                         )
                                 }
                                 is TrackCompleted ->
@@ -115,7 +115,7 @@ class TrackingClient(private val authedHttpClient: IHttpClient, private val base
                                                 playlistId = null,
                                                 progress = null,
                                                 playlistSessionId =
-                                                        event.playlistSessionId.ifBlank { null }
+                                                        event.playlistSessionId
                                         )
                                 is PlaylistStarted ->
                                         Payload(
@@ -131,7 +131,7 @@ class TrackingClient(private val authedHttpClient: IHttpClient, private val base
                                                         ),
                                                 progress = null,
                                                 playlistSessionId =
-                                                        event.playlistSessionId.ifBlank { null }
+                                                        event.playlistSessionId
                                         )
                                 is PlaylistCompleted ->
                                         Payload(
@@ -147,7 +147,7 @@ class TrackingClient(private val authedHttpClient: IHttpClient, private val base
                                                         ),
                                                 progress = null,
                                                 playlistSessionId =
-                                                        event.playlistSessionId.ifBlank { null }
+                                                        event.playlistSessionId
                                         )
                         }
 
@@ -163,10 +163,10 @@ class TrackingClient(private val authedHttpClient: IHttpClient, private val base
                 val idempotencyKey: String = UUID.randomUUID().toString(),
                 val type: String,
                 val sessionId: String,
+                val playlistSessionId: String
                 val songId: String? = null,
                 val playlistId: String? = null,
                 val progress: Double? = null,
-                val playlistSessionId: String? = null
         )
 }
 
