@@ -1,22 +1,19 @@
 package com.myndstream.myndcoresdk.playback
 
 import android.content.Context
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
+import androidx.media3.common.C.WAKE_MODE_NETWORK
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.common.AudioAttributes
-import androidx.media3.common.C
-import androidx.media3.common.C.WAKE_MODE_NETWORK
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import models.*
 
-class PlaybackWrapper private constructor(
-    public val exoPlayer: ExoPlayer
-) {
+class PlaybackWrapper private constructor(public val exoPlayer: ExoPlayer) {
     var currentPlaylist: PlaylistWithSongs? = null
-        private set
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val _events = MutableSharedFlow<AudioPlayerEvent>()
@@ -44,9 +41,7 @@ class PlaybackWrapper private constructor(
         set(value) {
             val newVolume = value.coerceIn(0f, 1f)
             exoPlayer.volume = newVolume
-            scope.launch {
-                _events.emit(AudioPlayerEvent.VolumeChanged(newVolume))
-            }
+            scope.launch { _events.emit(AudioPlayerEvent.VolumeChanged(newVolume)) }
         }
 
     private var progressJob: Job? = null
@@ -56,64 +51,65 @@ class PlaybackWrapper private constructor(
     }
 
     private fun setupPlayerListener() {
-        exoPlayer.addListener(object : Player.Listener {
-            override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
-                val previousIdx = exoPlayer.previousMediaItemIndex
-                val currentIdx = exoPlayer.currentMediaItemIndex
+        exoPlayer.addListener(
+                object : Player.Listener {
+                    override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
+                        val previousIdx = exoPlayer.previousMediaItemIndex
+                        val currentIdx = exoPlayer.currentMediaItemIndex
 
-                println("index: $currentIdx $previousIdx")
+                        println("index: $currentIdx $previousIdx")
 
-                if (previousIdx != -1) {
-                    scope.launch {
-                        currentPlaylist?.songs?.getOrNull(previousIdx)?.let { song ->
-                            _royaltyEvents.emit(RoyaltyTrackingEvent.TrackFinished(song))
+                        if (previousIdx != -1) {
+                            scope.launch {
+                                currentPlaylist?.songs?.getOrNull(previousIdx)?.let { song ->
+                                    _royaltyEvents.emit(RoyaltyTrackingEvent.TrackFinished(song))
+                                }
+                            }
+                        }
+
+                        if (currentIdx != -1) {
+                            scope.launch {
+                                currentPlaylist?.songs?.getOrNull(currentIdx)?.let { song ->
+                                    _royaltyEvents.emit(RoyaltyTrackingEvent.TrackStarted(song))
+                                }
+                            }
+                            updateProgress()
                         }
                     }
-                }
 
-                if (currentIdx != -1) {
-                    scope.launch {
-                        currentPlaylist?.songs?.getOrNull(currentIdx)?.let { song ->
-                            _royaltyEvents.emit(RoyaltyTrackingEvent.TrackStarted(song))
+                    override fun onIsPlayingChanged(isPlaying: Boolean) {
+                        updateState()
+                        if (isPlaying) {
+                            startProgressUpdates()
+                        } else {
+                            stopProgressUpdates()
                         }
                     }
-                    updateProgress()
-                }
-            }
 
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                updateState()
-                if (isPlaying) {
-                    startProgressUpdates()
-                } else {
-                    stopProgressUpdates()
-                }
-            }
+                    override fun onPositionDiscontinuity(
+                            oldPosition: Player.PositionInfo,
+                            newPosition: Player.PositionInfo,
+                            reason: Int
+                    ) {
+                        updateProgress()
+                    }
 
-            override fun onPositionDiscontinuity(
-                oldPosition: Player.PositionInfo,
-                newPosition: Player.PositionInfo,
-                reason: Int
-            ) {
-                updateProgress()
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                scope.launch {
-                    _events.emit(AudioPlayerEvent.ErrorOccurred(error))
+                    override fun onPlayerError(error: PlaybackException) {
+                        scope.launch { _events.emit(AudioPlayerEvent.ErrorOccurred(error)) }
+                    }
                 }
-            }
-        })
+        )
     }
 
     private fun startProgressUpdates() {
         stopProgressUpdates()
-        progressJob = scope.launch {
-            while (isActive && isPlaying) {
-                updateProgress()
-                delay(1000)
-            }
-        }
+        progressJob =
+                scope.launch {
+                    while (isActive && isPlaying) {
+                        updateProgress()
+                        delay(1000)
+                    }
+                }
     }
 
     private fun stopProgressUpdates() {
@@ -128,27 +124,32 @@ class PlaybackWrapper private constructor(
         }
 
         currentPlaylist = playlist
-        
+
         // Keep individual tracks but show playlist-level metadata
         // The progress will still be track-based, but the display shows playlist context
-        val mediaItems = playlist.songs.mapIndexed { index, song ->
-            MediaItem.Builder()
-                .setUri(song.audio.mp3.url)
-                .setMediaMetadata(
-                    androidx.media3.common.MediaMetadata.Builder()
-                        .setTitle(playlist.playlist.name)
-                        .setArtist("Track ${index + 1} of ${playlist.songs.size}")
-                        .setAlbumTitle(playlist.playlist.description ?: "Playlist")
-                        .setGenre(playlist.playlist.genre)
-                        .apply {
-                            playlist.playlist.image?.url?.let { imageUrl ->
-                                setArtworkUri(android.net.Uri.parse(imageUrl))
-                            }
-                        }
-                        .build()
-                )
-                .build()
-        }
+        val mediaItems =
+                playlist.songs.mapIndexed { index, song ->
+                    MediaItem.Builder()
+                            .setUri(song.audio.mp3.url)
+                            .setMediaMetadata(
+                                    androidx.media3.common.MediaMetadata.Builder()
+                                            .setTitle(playlist.playlist.name)
+                                            .setArtist(
+                                                    "Track ${index + 1} of ${playlist.songs.size}"
+                                            )
+                                            .setAlbumTitle(
+                                                    playlist.playlist.description ?: "Playlist"
+                                            )
+                                            .setGenre(playlist.playlist.genre)
+                                            .apply {
+                                                playlist.playlist.image?.url?.let { imageUrl ->
+                                                    setArtworkUri(android.net.Uri.parse(imageUrl))
+                                                }
+                                            }
+                                            .build()
+                            )
+                            .build()
+                }
 
         exoPlayer.setMediaItems(mediaItems)
         exoPlayer.prepare()
@@ -171,25 +172,25 @@ class PlaybackWrapper private constructor(
     }
 
     fun setRepeatMode(mode: RepeatMode) {
-        exoPlayer.repeatMode = when (mode) {
-            RepeatMode.NONE -> Player.REPEAT_MODE_OFF
-            RepeatMode.PLAYLIST -> Player.REPEAT_MODE_ALL
-        }
+        exoPlayer.repeatMode =
+                when (mode) {
+                    RepeatMode.NONE -> Player.REPEAT_MODE_OFF
+                    RepeatMode.PLAYLIST -> Player.REPEAT_MODE_ALL
+                }
     }
 
     private fun updateState() {
         val currentIndex = exoPlayer.currentMediaItemIndex
         val song = currentPlaylist?.songs?.getOrNull(currentIndex)
 
-        _state = when {
-            song == null -> PlaybackState.Idle
-            isPlaying -> PlaybackState.Playing(song, currentIndex)
-            else -> PlaybackState.Paused(song, currentIndex)
-        }
+        _state =
+                when {
+                    song == null -> PlaybackState.Idle
+                    isPlaying -> PlaybackState.Playing(song, currentIndex)
+                    else -> PlaybackState.Paused(song, currentIndex)
+                }
 
-        scope.launch {
-            _events.emit(AudioPlayerEvent.StateChanged(_state))
-        }
+        scope.launch { _events.emit(AudioPlayerEvent.StateChanged(_state)) }
     }
 
     private fun updateProgress() {
@@ -197,43 +198,40 @@ class PlaybackWrapper private constructor(
 
         val currentIndex = exoPlayer.currentMediaItemIndex
         val trackTime = exoPlayer.currentPosition / 1000.0
-        val trackDuration = if (exoPlayer.duration > 0) {
-            exoPlayer.duration / 1000.0
-        } else {
-            0.0
-        }
+        val trackDuration =
+                if (exoPlayer.duration > 0) {
+                    exoPlayer.duration / 1000.0
+                } else {
+                    0.0
+                }
 
-        val (playlistTime, playlistDuration) = calculatePlaylistProgress(
-            currentPlaylist,
-            currentIndex,
-            trackTime
-        )
+        val (playlistTime, playlistDuration) =
+                calculatePlaylistProgress(currentPlaylist, currentIndex, trackTime)
 
-        _progress = PlaybackProgress(
-            trackCurrentTime = trackTime,
-            trackDuration = trackDuration,
-            trackIndex = currentIndex,
-            playlistCurrentTime = playlistTime,
-            playlistDuration = playlistDuration
-        )
+        _progress =
+                PlaybackProgress(
+                        trackCurrentTime = trackTime,
+                        trackDuration = trackDuration,
+                        trackIndex = currentIndex,
+                        playlistCurrentTime = playlistTime,
+                        playlistDuration = playlistDuration
+                )
 
         currentSong?.let { song ->
             scope.launch {
                 _royaltyEvents.emit(
-                    RoyaltyTrackingEvent.TrackProgress(song, _progress.trackProgress)
+                        RoyaltyTrackingEvent.TrackProgress(song, _progress.trackProgress)
                 )
             }
         }
 
-        scope.launch {
-            _events.emit(AudioPlayerEvent.ProgressUpdated(_progress))
-        }
+        scope.launch { _events.emit(AudioPlayerEvent.ProgressUpdated(_progress)) }
     }
 
     private fun calculatePlaylistProgress(
-        playlist: PlaylistWithSongs,
-        currentIndex: Int,
-        currentTrackTime: Double
+            playlist: PlaylistWithSongs,
+            currentIndex: Int,
+            currentTrackTime: Double
     ): Pair<Double, Double> {
         var totalTime = 0.0
         var currentTime = 0.0
@@ -259,15 +257,16 @@ class PlaybackWrapper private constructor(
 
     companion object {
         fun create(context: Context): PlaybackWrapper {
-            val exoPlayer = ExoPlayer.Builder(context)
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                        .build(),
-                    true
-                )
-                .build()
+            val exoPlayer =
+                    ExoPlayer.Builder(context)
+                            .setAudioAttributes(
+                                    AudioAttributes.Builder()
+                                            .setUsage(C.USAGE_MEDIA)
+                                            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                                            .build(),
+                                    true
+                            )
+                            .build()
             exoPlayer.setWakeMode(WAKE_MODE_NETWORK)
 
             return PlaybackWrapper(exoPlayer)
