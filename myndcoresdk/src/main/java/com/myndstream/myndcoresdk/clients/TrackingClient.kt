@@ -1,24 +1,28 @@
 package com.myndstream.myndcoresdk.clients
 
+import com.myndstream.myndcoresdk.models.PlaylistCompleted
+import com.myndstream.myndcoresdk.models.PlaylistStarted
+import com.myndstream.myndcoresdk.models.TrackCompleted
+import com.myndstream.myndcoresdk.models.TrackProgress
+import com.myndstream.myndcoresdk.models.TrackStarted
+import com.myndstream.myndcoresdk.models.TrackingEvent
 import java.io.Serializable
-import java.util.UUID
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import models.PlaylistCompleted
-import models.PlaylistStarted
-import models.TrackCompleted
-import models.TrackProgress
-import models.TrackStarted
-import models.TrackingEvent
 
 interface ITrackingClient : Serializable {
         suspend fun trackEvent(event: TrackingEvent): Result<Unit>
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 class TrackingClient(private val authedHttpClient: IHttpClient, private val baseUrl: String) :
         ITrackingClient {
 
-        private val json = Json { ignoreUnknownKeys = true }
+        private val json = Json {
+                ignoreUnknownKeys = true
+                explicitNulls = false
+        }
 
         private val thresholds: List<Double> = listOf(0.25, 0.5, 0.75)
         private val sentProgressEvents: MutableMap<String, Double> = mutableMapOf()
@@ -53,28 +57,31 @@ class TrackingClient(private val authedHttpClient: IHttpClient, private val base
         }
 
         override suspend fun trackEvent(event: TrackingEvent): Result<Unit> = runCatching {
-                val url = "$baseUrl/integration/tracking/events"
+                val url = "$baseUrl/integration-events/"
 
-                val payload: Payload =
+                event.sessionId.validateNotBlank("sessionId")
+                event.playlistSessionId.validateNotBlank("playlistSessionId")
+
+                val eventToSend =
                         when (event) {
-                                is TrackStarted ->
-                                        Payload(
-                                                type = "TrackStarted",
-                                                sessionId =
-                                                        event.sessionId.validateNotBlank(
-                                                                "sessionId"
-                                                        ),
-                                                songId = event.songId.validateNotBlank("songId"),
-                                                playlistId = null,
-                                                progress = null,
-                                                playlistSessionId =
-                                                        event.playlistSessionId
-                                        )
+                                is TrackStarted -> {
+                                        event.songId.validateNotBlank("songId")
+                                        event.songName.validateNotBlank("songName")
+                                        event.playlistId.validateNotBlank("playlistId")
+                                        event.playlistName.validateNotBlank("playlistName")
+                                        event
+                                }
                                 is TrackProgress -> {
+                                        event.songId.validateNotBlank("songId")
+                                        event.songName.validateNotBlank("songName")
+                                        event.playlistId.validateNotBlank("playlistId")
+                                        event.playlistName.validateNotBlank("playlistName")
+
                                         val p = event.progress
                                         require(p in 0.0..1.0) {
                                                 "progress must be between 0.0 and 1.0"
                                         }
+
                                         val threshold =
                                                 validThreshold(
                                                         songId = event.songId,
@@ -82,7 +89,13 @@ class TrackingClient(private val authedHttpClient: IHttpClient, private val base
                                                         playlistSessionId = event.playlistSessionId,
                                                         progress = p
                                                 )
-                                                        ?: return@runCatching Unit
+
+                                        if (threshold == null) {
+                                                println(
+                                                        "EventTracking: skipping track:progress for songId=${event.songId} at progress=$p; waiting for next threshold"
+                                                )
+                                                return@runCatching Unit
+                                        }
 
                                         sentProgressEvents[
                                                 progressKey(
@@ -91,83 +104,49 @@ class TrackingClient(private val authedHttpClient: IHttpClient, private val base
                                                         event.playlistSessionId
                                                 )] = threshold
 
-                                        Payload(
-                                                type = "TrackProgress",
-                                                sessionId =
-                                                        event.sessionId.validateNotBlank(
-                                                                "sessionId"
-                                                        ),
-                                                songId = event.songId.validateNotBlank("songId"),
-                                                playlistId = null,
-                                                progress = threshold,
-                                                playlistSessionId =
-                                                        event.playlistSessionId
-                                        )
+                                        event.copy(progress = threshold)
                                 }
-                                is TrackCompleted ->
-                                        Payload(
-                                                type = "TrackCompleted",
-                                                sessionId =
-                                                        event.sessionId.validateNotBlank(
-                                                                "sessionId"
-                                                        ),
-                                                songId = event.songId.validateNotBlank("songId"),
-                                                playlistId = null,
-                                                progress = null,
-                                                playlistSessionId =
-                                                        event.playlistSessionId
+                                is TrackCompleted -> {
+                                        event.songId.validateNotBlank("songId")
+                                        event.songName.validateNotBlank("songName")
+                                        event.playlistId.validateNotBlank("playlistId")
+                                        event.playlistName.validateNotBlank("playlistName")
+                                        event
+                                }
+                                is PlaylistStarted -> {
+                                        event.playlistId.validateNotBlank("playlistId")
+                                        event.playlistName.validateNotBlank("playlistName")
+                                        event.playlistGenre.validateNotBlank("playlistGenre")
+                                        event.playlistInstrumentation.validateNotBlank(
+                                                "playlistInstrumentation"
                                         )
-                                is PlaylistStarted ->
-                                        Payload(
-                                                type = "PlaylistStarted",
-                                                sessionId =
-                                                        event.sessionId.validateNotBlank(
-                                                                "sessionId"
-                                                        ),
-                                                songId = null,
-                                                playlistId =
-                                                        event.playlistId.validateNotBlank(
-                                                                "playlistId"
-                                                        ),
-                                                progress = null,
-                                                playlistSessionId =
-                                                        event.playlistSessionId
+                                        event
+                                }
+                                is PlaylistCompleted -> {
+                                        event.playlistId.validateNotBlank("playlistId")
+                                        event.playlistName.validateNotBlank("playlistName")
+                                        event.playlistGenre.validateNotBlank("playlistGenre")
+                                        event.playlistInstrumentation.validateNotBlank(
+                                                "playlistInstrumentation"
                                         )
-                                is PlaylistCompleted ->
-                                        Payload(
-                                                type = "PlaylistCompleted",
-                                                sessionId =
-                                                        event.sessionId.validateNotBlank(
-                                                                "sessionId"
-                                                        ),
-                                                songId = null,
-                                                playlistId =
-                                                        event.playlistId.validateNotBlank(
-                                                                "playlistId"
-                                                        ),
-                                                progress = null,
-                                                playlistSessionId =
-                                                        event.playlistSessionId
-                                        )
+                                        event
+                                }
                         }
 
-                val body = json.encodeToString(payload)
-                println("EventTracking: sending ${payload.type} for session=${payload.sessionId}")
-                // authedHttpClient.post(url, body, headers = emptyMap())
-                println("EventTracking: sent ${payload.type}")
+                val body = json.encodeToString(eventToSend)
+                val eventType =
+                        when (eventToSend) {
+                                is TrackStarted -> eventToSend.type
+                                is TrackProgress -> eventToSend.type
+                                is TrackCompleted -> eventToSend.type
+                                is PlaylistStarted -> eventToSend.type
+                                is PlaylistCompleted -> eventToSend.type
+                        }
+                println("EventTracking: sending $eventType for session=${eventToSend.sessionId}")
+                authedHttpClient.post(url, body, headers = emptyMap())
+                println("EventTracking: sent $eventType")
                 Unit
         }
-
-        @kotlinx.serialization.Serializable
-        private data class Payload(
-                val idempotencyKey: String = UUID.randomUUID().toString(),
-                val type: String,
-                val sessionId: String,
-                val playlistSessionId: String
-                val songId: String? = null,
-                val playlistId: String? = null,
-                val progress: Double? = null,
-        )
 }
 
 private fun String.validateNotBlank(name: String): String {

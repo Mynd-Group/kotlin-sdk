@@ -9,16 +9,10 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.myndstream.myndcoresdk.clients.ITrackingClient
 import com.myndstream.myndcoresdk.core.utils.ListeningSessionManager
+import com.myndstream.myndcoresdk.models.*
 import java.util.UUID
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
-import models.PlaylistCompleted
-import models.PlaylistStarted
-import models.PlaylistWithSongs
-import models.Song
-import models.TrackCompleted
-import models.TrackProgress
-import models.TrackStarted
 
 @UnstableApi
 class PlaybackClient(
@@ -97,91 +91,124 @@ class PlaybackClient(
 
     private fun enableEventTracking() {
         scope.launch {
-            events.collect { event ->
-                when (event) {
-                    is AudioPlayerEvent.PlaylistQueued -> {
-                        val playlistId = event.playlist.playlist.id
-                        val sessionId = sessionManager.getSessionId()
-                        val result =
-                                trackingClient.trackEvent(
-                                        PlaylistStarted(
-                                                playlistId = playlistId,
-                                                sessionId = sessionId,
-                                                playlistSessionId = playlistSessionId
-                                        )
-                                )
-                        if (result.isFailure) {
-                            println("EventTracking error: ${result.exceptionOrNull()?.message}")
-                        }
+            try {
+                println("EventTracking: subscribing to player events")
+                player.events.collect { event ->
+                    when (event) {
+                        is AudioPlayerEvent.PlaylistQueued -> handlePlaylistStarted(event.playlist)
+                        is AudioPlayerEvent.PlaylistCompleted -> handlePlaylistCompleted()
+                        else -> {}
                     }
-                    is AudioPlayerEvent.PlaylistCompleted -> {
-                        val sessionId = sessionManager.getSessionId()
-                        val playlistId = currentPlaylist?.playlist?.id ?: ""
-                        val result =
-                                trackingClient.trackEvent(
-                                        PlaylistCompleted(
-                                                playlistId = playlistId,
-                                                sessionId = sessionId,
-                                                playlistSessionId = playlistSessionId
-                                        )
-                                )
-                        if (result.isFailure) {
-                            println("EventTracking error: ${result.exceptionOrNull()?.message}")
-                        }
-                    }
-                    else -> {}
                 }
+            } catch (t: Throwable) {
+                println("EventTracking: player events collector failed: ${t.message}")
             }
         }
 
         scope.launch {
-            royaltyEvents.collect { revent ->
-                when (revent) {
-                    is RoyaltyTrackingEvent.TrackStarted -> {
-                        val sessionId = sessionManager.getSessionId()
-                        val result =
-                                trackingClient.trackEvent(
-                                        TrackStarted(
-                                                songId = revent.song.id,
-                                                sessionId = sessionId,
-                                                playlistSessionId = playlistSessionId
-                                        )
-                                )
-                        if (result.isFailure) {
-                            println("EventTracking error: ${result.exceptionOrNull()?.message}")
-                        }
-                    }
-                    is RoyaltyTrackingEvent.TrackProgress -> {
-                        val sessionId = sessionManager.getSessionId()
-                        val result =
-                                trackingClient.trackEvent(
-                                        TrackProgress(
-                                                songId = revent.song.id,
-                                                progress = revent.progress,
-                                                sessionId = sessionId,
-                                                playlistSessionId = playlistSessionId
-                                        )
-                                )
-                        if (result.isFailure) {
-                            println("EventTracking error: ${result.exceptionOrNull()?.message}")
-                        }
-                    }
-                    is RoyaltyTrackingEvent.TrackFinished -> {
-                        val sessionId = sessionManager.getSessionId()
-                        val result =
-                                trackingClient.trackEvent(
-                                        TrackCompleted(
-                                                songId = revent.song.id,
-                                                sessionId = sessionId,
-                                                playlistSessionId = playlistSessionId
-                                        )
-                                )
-                        if (result.isFailure) {
-                            println("EventTracking error: ${result.exceptionOrNull()?.message}")
-                        }
+            try {
+                println("EventTracking: subscribing to royalty events")
+                player.royaltyEvents.collect { event ->
+                    when (event) {
+                        is RoyaltyTrackingEvent.TrackStarted -> handleTrackStarted(event.song)
+                        is RoyaltyTrackingEvent.TrackProgress ->
+                                handleTrackProgress(event.song, event.progress)
+                        is RoyaltyTrackingEvent.TrackFinished -> handleTrackCompleted(event.song)
                     }
                 }
+            } catch (t: Throwable) {
+                println("EventTracking: royalty events collector failed: ${t.message}")
             }
+        }
+    }
+
+    private suspend fun handlePlaylistStarted(playlist: PlaylistWithSongs) {
+        trackEvent {
+            PlaylistStarted(
+                    playlistId = playlist.playlist.id,
+                    playlistName = playlist.playlist.name,
+                    playlistGenre = playlist.playlist.genre ?: "",
+                    playlistBPM = playlist.playlist.bpm ?: 0,
+                    playlistInstrumentation = playlist.playlist.instrumentation ?: "",
+                    playlistDuration = playlist.songs.sumOf { it.audio.mp3.durationInSeconds },
+                    sessionId = sessionManager.getSessionId(),
+                    playlistSessionId = playlistSessionId
+            )
+        }
+    }
+
+    private suspend fun handlePlaylistCompleted() {
+        val playlist = currentPlaylist ?: return
+        trackEvent {
+            PlaylistCompleted(
+                    playlistId = playlist.playlist.id,
+                    playlistName = playlist.playlist.name,
+                    playlistGenre = playlist.playlist.genre ?: "",
+                    playlistBPM = playlist.playlist.bpm ?: 0,
+                    playlistInstrumentation = playlist.playlist.instrumentation ?: "",
+                    playlistDuration = playlist.songs.sumOf { it.audio.mp3.durationInSeconds },
+                    sessionId = sessionManager.getSessionId(),
+                    playlistSessionId = playlistSessionId
+            )
+        }
+    }
+
+    private var songSessionId: String = UUID.randomUUID().toString()
+
+    private suspend fun handleTrackStarted(song: Song) {
+        val playlist = currentPlaylist ?: return
+        songSessionId = UUID.randomUUID().toString()
+        trackEvent {
+            TrackStarted(
+                    songId = song.id,
+                    songName = song.name,
+                    songDuration = song.audio.mp3.durationInSeconds,
+                    playlistId = playlist.playlist.id,
+                    playlistName = playlist.playlist.name,
+                    songSessionId = songSessionId,
+                    sessionId = sessionManager.getSessionId(),
+                    playlistSessionId = playlistSessionId
+            )
+        }
+    }
+
+    private suspend fun handleTrackProgress(song: Song, progress: Double) {
+        val playlist = currentPlaylist ?: return
+        trackEvent {
+            TrackProgress(
+                    songId = song.id,
+                    songName = song.name,
+                    songDuration = song.audio.mp3.durationInSeconds,
+                    playlistId = playlist.playlist.id,
+                    playlistName = playlist.playlist.name,
+                    songSessionId = songSessionId,
+                    progress = progress,
+                    sessionId = sessionManager.getSessionId(),
+                    playlistSessionId = playlistSessionId
+            )
+        }
+    }
+
+    private suspend fun handleTrackCompleted(song: Song) {
+        val playlist = currentPlaylist ?: return
+        trackEvent {
+            TrackCompleted(
+                    songId = song.id,
+                    songName = song.name,
+                    songDuration = song.audio.mp3.durationInSeconds,
+                    playlistId = playlist.playlist.id,
+                    playlistName = playlist.playlist.name,
+                    songSessionId = songSessionId,
+                    sessionId = sessionManager.getSessionId(),
+                    playlistSessionId = playlistSessionId
+            )
+        }
+    }
+
+    private suspend inline fun trackEvent(eventBuilder: () -> TrackingEvent) {
+        val result = trackingClient.trackEvent(eventBuilder())
+        if (result.isFailure) {
+            println("EventTracking error: ${result.exceptionOrNull()?.message}")
         }
     }
 
