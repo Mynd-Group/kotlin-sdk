@@ -5,33 +5,76 @@ sealed interface TrackingEvent {
         val playlistSessionId: String
 }
 
+sealed interface TrackEvent : TrackingEvent {
+        val songId: String
+        val songName: String
+        val songDurationSeconds: Int
+        val playlistId: String
+        val playlistName: String
+        val songSessionId: Int
+}
+
+sealed interface PlaylistEvent : TrackingEvent {
+        val playlistId: String
+        val playlistName: String
+        val playlistGenre: String
+        val playlistBPM: Int
+        val playlistInstrumentation: String
+        val playlistDurationSeconds: Int
+}
+
 data class TrackStarted(
-        val songId: String,
+        override val songId: String,
+        override val songName: String,
+        override val songDurationSeconds: Int,
+        override val playlistId: String,
+        override val playlistName: String,
+        override val songSessionId: Int,
         override val sessionId: String,
         override val playlistSessionId: String
-) : TrackingEvent
+) : TrackEvent
 
 data class TrackProgress(
-        val songId: String,
+        override val songId: String,
+        override val songName: String,
+        override val songDurationSeconds: Int,
+        override val playlistId: String,
+        override val playlistName: String,
+        override val songSessionId: Int,
         val progress: Double,
         override val sessionId: String,
         override val playlistSessionId: String
-) : TrackingEvent
+) : TrackEvent
 
 data class TrackCompleted(
-        val songId: String,
+        override val songId: String,
+        override val songName: String,
+        override val songDurationSeconds: Int,
+        override val playlistId: String,
+        override val playlistName: String,
+        override val songSessionId: Int,
         override val sessionId: String,
         override val playlistSessionId: String
-) : TrackingEvent
+) : TrackEvent
 
 data class PlaylistStarted(
-        val playlistId: String,
+        override val playlistId: String,
+        override val playlistName: String,
+        override val playlistGenre: String,
+        override val playlistBPM: Int,
+        override val playlistInstrumentation: String,
+        override val playlistDurationSeconds: Int,
         override val sessionId: String,
         override val playlistSessionId: String
-) : TrackingEvent
+) : PlaylistEvent
 
 data class PlaylistCompleted(
-        val playlistId: String,
+        override val playlistId: String,
+        override val playlistName: String,
+        override val playlistGenre: String,
+        override val playlistBPM: Int,
+        override val playlistInstrumentation: String,
+        override val playlistDurationSeconds: Int,
         override val sessionId: String,
         override val playlistSessionId: String
-) : TrackingEvent
+) : PlaylistEvent
