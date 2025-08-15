@@ -8,6 +8,7 @@ import com.myndstream.myndcoresdk.clients.AuthClientConfig
 import com.myndstream.myndcoresdk.clients.AuthedHttpClient
 import com.myndstream.myndcoresdk.clients.HttpClient
 import com.myndstream.myndcoresdk.clients.HttpClientConfig
+import com.myndstream.myndcoresdk.clients.IHttpClient
 import com.myndstream.myndcoresdk.clients.TrackingClient
 import com.myndstream.myndcoresdk.core.utils.ListeningSessionManager
 import com.myndstream.myndcoresdk.playback.AudioPlayerEvent
@@ -15,7 +16,34 @@ import com.myndstream.myndcoresdk.playback.IAudioClient
 import com.myndstream.myndcoresdk.playback.PlaybackClient
 import com.myndstream.myndcoresdk.playback.PlaybackState
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 import models.*
+
+@Serializable
+data class Tokens(
+        val accessToken: String,
+        val refreshToken: String,
+        val accessTokenLifeTimeInMs: Long,
+        val accessTokenExpiresAtUnixMs: Long
+)
+
+suspend fun getToken(http: IHttpClient = HttpClient()): Tokens {
+        val url = "http://10.0.2.2:4000/api/v1/integration-user/authenticate"
+        val headers =
+                mapOf(
+                        "x-api-key" to
+                                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbnRlZ3JhdGlvbkFwaUtleUlkIjoiMzMyNzE5NzctOWRhYS00YjJhLWFkODQtYWNlZjU0MzQ3ZmQ3IiwiYWNjb3VudElkIjoiMTBlOTlmMzAtNDlkNy00ZDljLWFiMWEtMmU2MjYxMTk2YTRiIiwiaWF0IjoxNzU1MDA5ODI0fQ.H0eYYVzPJpSvs_ys6OgexgsOaaMVo3tQuEbP0DfSnbw"
+                )
+
+        // call your GET
+        val raw = http.post(url, "{\"providerUserId\":\"some-random-id\"}", headers)
+
+        // parse JSON
+        val json = Json { ignoreUnknownKeys = true }
+        return json.decodeFromString(Tokens.serializer(), raw)
+}
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,16 +52,20 @@ class MainActivity : AppCompatActivity() {
 
                 println("🚀 MyndCore app started!")
 
-                testAudioPlayer()
+                lifecycleScope.launch {
+                        val token = getToken()
+
+                        testAudioPlayer(token)
+                }
         }
 
-        private fun testAudioPlayer() {
+        private fun testAudioPlayer(token: Tokens) {
                 try {
                         val httpClient = HttpClient(HttpClientConfig())
                         val authClient =
                                 AuthClient(
                                         AuthClientConfig(
-                                                refreshToken = "demo-token",
+                                                refreshToken = token.refreshToken,
                                                 httpClient = httpClient,
                                                 baseUrl = Config.baseApiUrl
                                         )
