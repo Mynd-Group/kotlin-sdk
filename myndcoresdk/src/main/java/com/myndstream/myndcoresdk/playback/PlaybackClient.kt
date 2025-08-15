@@ -13,6 +13,8 @@ import com.myndstream.myndcoresdk.models.*
 import java.util.UUID
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
+import models.PlaylistWithSongs
+import models.Song
 
 @UnstableApi
 class PlaybackClient(
